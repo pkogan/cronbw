@@ -1,0 +1,7 @@
+crontab -e
+
+*/30 * * * * 'ruta al cron'/cron.sh
+
+Tener interprete php instalado
+
+Publicar carpeta en servidor web y acceder

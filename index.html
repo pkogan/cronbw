@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>μPlotu cronbw speedtest-cli</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="stylesheet" href="dist/uPlot.min.css">
+        <style>
+            body {
+                margin: 0;
+            }
+
+            .u-legend.u-inline .u-value {
+                width: 150px;
+                text-align: left;
+            }
+        </style>
+    </head>
+    <body>
+       <script src="dist/uPlot.iife.min.js"></script>
+<!-- <script src="../dist/uPlot.iife.js"></script> -->
+        <h2 id="wait">Loading lib....</h2>
+
+        <script>
+            function round2(val) {
+                return Math.round(val * 100) / 100;
+            }
+
+            function round3(val) {
+                return Math.round(val * 1000) / 1000;
+            }
+            function strToTimestamp(str) {
+                str=str.replace("_","-");
+                console.log(str);
+                myDate = str.split("-");
+                var newDate = new Date(myDate[0], myDate[1] - 1, myDate[2],myDate[3],myDate[4]);
+                console.log(newDate.getTime()/1000);
+                return newDate.getTime()/1000;
+                //time stamp posta 1566453600
+                //                 1600342201000
+            }
+
+            function prepData(packed) {
+                console.time("prep");
+
+                // epoch,idl,recv,send,read,writ,used,free
+
+                const numFields = 3;
+
+                //packed = packed.slice(numFields + 1);
+
+                // 55,550 data points x 3 series = 166,650
+                let data = [
+                    Array(packed.length),
+                    Array(packed.length),
+                    Array(packed.length)
+                            //Array(packed.length/numFields),
+                ];
+                /*                                console.log(packed[1]);
+                 exit;*/
+                
+                
+                for (let i = 0, j = 0; i < packed.length; i ++, j++) {
+                    data[0][j] = strToTimestamp(packed[i][0]);
+                    data[1][j] = packed[i][1];
+                    data[2][j] = packed[i][2];
+                    //data[3][j] = packed[i+3];
+                }
+                //console.log(data);
+                
+                //data[0]=[ 1566453660, 1566453720, 1566453780, 1566453840, 1566453900, 1566453960, 1566454020, 1566454080, 1599838740];
+                /*data[0]=[ 1599838740, 1600113660, 1600119000, 1600124400, 1600129800, 1600164000, 1600169400, 1600174800, 1600180200];
+                data[1]=[55.84, 58.04, 51.71, 51.66, 50.17, 55.9, 35.95, 42.33, 58.36];
+                data[2]=[44.72, 44.58, 41.46, 33.94, 31.97, 48.67, 34.33, 18.48, 35.23]; 
+                /*
+                 function filter(d) {
+                 return d.filter((d, i) => Math.round(i/1000) % 5 != 2);
+                 }
+                 
+                 data[0] = filter(data[0]);
+                 data[1] = filter(data[1]);
+                 data[2] = filter(data[2]);
+                 data[3] = filter(data[3]);
+                 */
+                /*
+                 data[0] = data[0].slice(0, 1000);
+                 data[1] = data[1].slice(0, 1000);
+                 data[2] = data[2].slice(0, 1000);
+                 data[3] = data[3].slice(0, 1000);
+                 
+                 data[1][35] = null;
+                 data[1][36] = null;
+                 data[2][730] = null;
+                 */
+                console.timeEnd("prep");
+
+                return data;
+            }
+
+            function makeChart(data) {
+                console.time("chart");
+
+                const opts = {
+                    title: "Server Events",
+                    width: 1920,
+                    height: 600,
+                    //	cursor: {
+                    //		x: false,
+                    //		y: false,
+                    //	},
+                    series: [
+                        {},
+                        /*{
+                         label: "CPU",
+                         scale: "%",
+                         value: (u, v) => v == null ? "-" : v.toFixed(1) + "%",
+                         stroke: "red",
+                         width: 1/devicePixelRatio,
+                         },
+                         {
+                         label: "RAM",
+                         scale: "%",
+                         value: (u, v) => v == null ? "-" : v.toFixed(1) + "%",
+                         stroke: "blue",
+                         width: 1/devicePixelRatio,
+                         },*/
+                        {
+                            label: "down",
+                            scale: "mb",
+                            value: (u, v) => v == null ? "-" : v.toFixed(1) + " MB",
+                            stroke: "blue",
+                            width: 1 / devicePixelRatio,
+                        },
+                        {
+                            label: "up",
+                            scale: "mb",
+                            value: (u, v) => v == null ? "-" : v.toFixed(2) + " MB",
+                            stroke: "red",
+                            width: 1 / devicePixelRatio,
+                        }
+                    ],
+                    axes: [
+                        {},
+                        {
+                            scale: "mb",
+                            size: 60,
+                            values: (u, vals, space) => vals.map(v => +v.toFixed(1) + " MB"),
+                        },
+                        {
+                            side: 1,
+                            scale: "mb",
+                            size: 60,
+                            values: (u, vals, space) => vals.map(v => +v.toFixed(2) + " MB"),
+                            grid: {show: false},
+                        },
+                    ],
+                };
+
+                let uplot = new uPlot(opts, data, document.body);
+
+                wait.textContent = "uPlot cronbw speedtest-cli";
+                console.timeEnd("chart");
+            }
+
+            let wait = document.getElementById("wait");
+            wait.textContent = "Fetching data.json (2.07MB)....";
+            /*fetch("registro-speedtest.log")
+             .then(response => response.json())
+             .then(json => console.log(json));
+             */
+            fetch("parserjson.php").then(r => r.json()).then(packed => {
+                wait.textContent = "Rendering...";
+                let data = prepData(packed);
+                console.log(data);
+                setTimeout(() => makeChart(data), 0);
+            });
+        </script>
+    </body>
+</html>
